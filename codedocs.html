@@ -20,12 +20,14 @@
             height: 100vh;
             overflow: hidden;
         }
+        /* Main app flex: sidebar + main content */
         .app {
             display: flex;
             height: 100vh;
             width: 100%;
             overflow: hidden;
         }
+        /* ========= SIDEBAR (Docs manager) ========= */
         .sidebar {
             width: 280px;
             background: #ffffff;
@@ -54,11 +56,6 @@
             display: flex;
             align-items: center;
             gap: 8px;
-            cursor: pointer;
-            transition: 0.2s;
-        }
-        .sidebar-header h2:hover {
-            transform: scale(1.02);
         }
         .new-doc-btn {
             margin-top: 16px;
@@ -146,6 +143,8 @@
             background: #e2e8f0;
         }
         .delete-btn:hover { color: #dc2626 !important; }
+
+        /* ========= MAIN AREA (Editor + Chat) ========= */
         .main-area {
             flex: 1;
             display: flex;
@@ -154,6 +153,7 @@
             background: #ffffff;
             min-width: 0;
         }
+        /* Toolbar */
         .toolbar {
             background: #ffffff;
             border-bottom: 1px solid #e9eef3;
@@ -191,6 +191,7 @@
             align-items: center;
             gap: 6px;
         }
+        /* Editor container */
         .editor-container {
             flex: 1;
             min-height: 0;
@@ -203,6 +204,7 @@
             height: 100%;
             font-size: 14px;
         }
+        /* ========= CHAT PANEL ========= */
         .chat-panel {
             background: #ffffff;
             border-top: 2px solid #e2e8f0;
@@ -298,69 +300,26 @@
             text-align: center;
             outline: none;
         }
-        .easter-egg-modal {
-            display: none;
+        
+        /* Easter egg text in bottom right */
+        .easter-egg-text {
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.6);
-            z-index: 9999;
-            align-items: center;
-            justify-content: center;
-            animation: fadeIn 0.3s ease-in-out;
+            bottom: 10px;
+            right: 10px;
+            font-size: 0.75rem;
+            color: #cbd5e1;
+            opacity: 0.5;
+            transition: 0.3s;
+            z-index: 100;
         }
-        .easter-egg-modal.active {
-            display: flex;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-        .easter-egg-content {
-            background: linear-gradient(135deg, #fbbf24, #f59e0b);
-            padding: 40px;
-            border-radius: 20px;
-            text-align: center;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            animation: slideUp 0.4s ease-out;
-            max-width: 500px;
-            color: white;
-        }
-        @keyframes slideUp {
-            from {
-                opacity: 0;
-                transform: translateY(50px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        .easter-egg-content h1 {
-            font-size: 2.5rem;
-            margin-bottom: 10px;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
-        }
-        .easter-egg-content p {
-            font-size: 1.2rem;
-            margin-bottom: 20px;
-            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
-        }
-        .easter-egg-close-btn {
-            background: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 40px;
-            font-weight: 700;
+        
+        .easter-egg-text:hover {
+            opacity: 1;
+            color: #fbbf24;
             cursor: pointer;
-            transition: 0.2s;
-            color: #f59e0b;
+            text-shadow: 0 0 8px rgba(251, 191, 36, 0.5);
         }
-        .easter-egg-close-btn:hover {
-            transform: scale(1.05);
-        }
+        
         @media (max-width: 700px) {
             .sidebar { width: 240px; }
             .chat-panel { height: 240px; }
@@ -370,17 +329,21 @@
 </head>
 <body>
 <div class="app">
+    <!-- LEFT SIDEBAR: Document manager -->
     <div class="sidebar">
         <div class="sidebar-header">
-            <h2 id="easterEggTrigger"><i class="fas fa-code"></i> CodeDocs</h2>
+            <h2><i class="fas fa-code"></i> CodeDocs</h2>
             <button class="new-doc-btn" id="newDocBtn"><i class="fas fa-plus-circle"></i> New document</button>
         </div>
-        <div class="docs-list" id="docsList"></div>
+        <div class="docs-list" id="docsList">
+            <!-- dynamic documents list -->
+        </div>
         <div style="padding: 12px; font-size: 11px; color: #94a3b8; border-top: 1px solid #eef2ff; text-align: center;">
             <i class="fas fa-save"></i> Auto-save · Code editor
         </div>
     </div>
 
+    <!-- MAIN AREA: Editor + Chat -->
     <div class="main-area">
         <div class="toolbar">
             <div class="doc-title">
@@ -391,9 +354,11 @@
                 <i class="fas fa-check-circle"></i> <span id="statusText">All changes saved</span>
             </div>
         </div>
+        <!-- Ace Editor -->
         <div class="editor-container">
             <div id="editor"></div>
         </div>
+        <!-- CHAT SECTION (global chat) -->
         <div class="chat-panel">
             <div class="chat-header">
                 <i class="fas fa-comments"></i> Team Chat · Global room
@@ -413,57 +378,21 @@
     </div>
 </div>
 
-<div class="easter-egg-modal" id="easterEggModal">
-    <div class="easter-egg-content">
-        <h1>🐐 ⭐</h1>
-        <p><strong>REYANSH IS THE GOAT</strong></p>
-        <p style="font-size: 0.9rem; margin-top: 15px;">You found the secret! 🎉</p>
-        <button class="easter-egg-close-btn" id="easterEggCloseBtn">Nice!</button>
-    </div>
-</div>
+<!-- Easter Egg Text -->
+<div class="easter-egg-text" title="Psst... hover over this!">🐐 reyansh is the goat</div>
 
 <script>
     (function(){
-        let easterEggClicks = 0;
-        const easterEggTrigger = document.getElementById('easterEggTrigger');
-        const easterEggModal = document.getElementById('easterEggModal');
-        const easterEggCloseBtn = document.getElementById('easterEggCloseBtn');
-        
-        function showEasterEgg() {
-            easterEggModal.classList.add('active');
-            setTimeout(() => {
-                easterEggModal.classList.remove('active');
-            }, 4000);
-        }
-        
-        easterEggTrigger.addEventListener('click', () => {
-            easterEggClicks++;
-            if (easterEggClicks === 7) {
-                showEasterEgg();
-                easterEggClicks = 0;
-            }
-        });
-        
-        easterEggCloseBtn.addEventListener('click', () => {
-            easterEggModal.classList.remove('active');
-            easterEggClicks = 0;
-        });
-        
-        easterEggModal.addEventListener('click', (e) => {
-            if (e.target === easterEggModal) {
-                easterEggModal.classList.remove('active');
-                easterEggClicks = 0;
-            }
-        });
-        
+        // ---------- DOCUMENTS SYSTEM (no preview, just code) ----------
         const STORAGE_DOCS = 'CodeDocs_NoPreview_Data';
         const STORAGE_CHAT = 'CodeDocs_Chat_Messages';
-        let documents = {};
+        let documents = {};      // { id: { id, name, content, lastModified } }
         let currentDocId = null;
         let editor = null;
         let saveTimeout = null;
         let isSwitching = false;
         
+        // Default code template (plain HTML/CSS/JS, but user can write any code)
         const DEFAULT_CODE = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -485,6 +414,7 @@
 </body>
 </html>`;
         
+        // --- Documents helpers ---
         function saveDocsToLocal() {
             try {
                 localStorage.setItem(STORAGE_DOCS, JSON.stringify(documents));
@@ -509,6 +439,7 @@
                     }
                 } catch(e) {}
             }
+            // default seed
             const now = Date.now();
             documents = {
                 'doc_main': {
@@ -560,6 +491,7 @@
             }
             container.innerHTML = html;
             
+            // attach events
             document.querySelectorAll('.doc-item').forEach(el => {
                 const docId = el.getAttribute('data-doc-id');
                 if (!docId) return;
@@ -568,6 +500,7 @@
                     if (currentDocId !== docId) switchToDocument(docId);
                 });
             });
+            // rename
             document.querySelectorAll('.rename-btn').forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     e.stopPropagation();
@@ -589,6 +522,7 @@
                     }
                 });
             });
+            // delete
             document.querySelectorAll('.delete-btn').forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     e.stopPropagation();
@@ -618,6 +552,7 @@
             });
         }
         
+        // Save current editor content into active doc
         function saveCurrentDocContent(updateStatus = true) {
             if (!currentDocId || !editor || isSwitching) return;
             const newCode = editor.getValue();
@@ -627,7 +562,7 @@
                 doc.lastModified = Date.now();
                 saveDocsToLocal();
                 if (updateStatus) setStatusMsg('Saved', true);
-                renderSidebar();
+                renderSidebar(); // update timestamp
             }
         }
         
@@ -660,7 +595,7 @@
             currentDocId = docId;
             updateEditorContent();
             document.getElementById('currentDocName').innerText = documents[docId].name;
-            renderSidebar();
+            renderSidebar(); // update active highlight
             isSwitching = false;
             setStatusMsg(`Opened: ${documents[docId].name}`, true);
         }
@@ -685,6 +620,7 @@
             setStatusMsg('New document created', true);
         }
         
+        // Editor setup with auto-save
         function initEditor() {
             const editorDiv = document.getElementById('editor');
             if (!editorDiv) return;
@@ -713,7 +649,8 @@
             setTimeout(() => editor?.resize(), 100);
         }
         
-        let chatMessages = [];
+        // ---------- CHAT SYSTEM (global, stored in localStorage) ----------
+        let chatMessages = []; // { id, nickname, text, timestamp }
         let currentNickname = "Guest";
         
         function loadChatFromStorage() {
@@ -725,6 +662,7 @@
                 } catch(e) { chatMessages = []; }
             }
             if (!chatMessages.length) {
+                // seed a welcome message
                 chatMessages.push({
                     id: Date.now(),
                     nickname: "System",
@@ -773,11 +711,13 @@
                 timestamp: Date.now()
             };
             chatMessages.push(newMsg);
+            // keep last 200 messages for performance
             if (chatMessages.length > 200) chatMessages = chatMessages.slice(-200);
             saveChatToStorage();
             renderChatMessages();
         }
         
+        // send chat from UI
         function sendChatMessage() {
             const input = document.getElementById('chatInput');
             const nickInput = document.getElementById('nicknameInput');
@@ -791,6 +731,7 @@
             input.focus();
         }
         
+        // update nickname and optionally save preference
         function updateNickname() {
             const nickInput = document.getElementById('nicknameInput');
             let newNick = nickInput.value.trim();
@@ -809,9 +750,11 @@
             }
         }
         
+        // Bootstrap entire app
         function bootstrap() {
             loadDocsFromStorage();
             initEditor();
+            // set current doc to first one
             const firstId = Object.keys(documents)[0];
             if (firstId) {
                 currentDocId = firstId;
@@ -822,12 +765,15 @@
                 }
                 document.getElementById('currentDocName').innerText = doc.name;
             } else {
+                // fallback
                 createNewDocument();
             }
             renderSidebar();
             
+            // Chat init
             loadChatFromStorage();
             loadNicknamePref();
+            // event listeners
             const sendBtn = document.getElementById('sendChatBtn');
             const chatInput = document.getElementById('chatInput');
             const nickField = document.getElementById('nicknameInput');
@@ -835,8 +781,10 @@
             chatInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendChatMessage(); });
             nickField.addEventListener('change', updateNickname);
             
+            // new doc button
             document.getElementById('newDocBtn').addEventListener('click', () => createNewDocument());
             
+            // Before page unload save current doc and chat
             window.addEventListener('beforeunload', () => {
                 if (editor && currentDocId && !isSwitching) {
                     const freshCode = editor.getValue();
@@ -849,6 +797,7 @@
                 saveChatToStorage();
             });
             
+            // Ctrl+S manual save
             document.addEventListener('keydown', (e) => {
                 if ((e.ctrlKey || e.metaKey) && e.key === 's') {
                     e.preventDefault();
