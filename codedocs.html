@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>CodeDocs — Collaborative Code Editor + Chat</title>
+    <!-- Font Awesome 6 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Ace Editor -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.33.3/ace.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+        }
+        body {
+            background: #f1f5f9;
+            height: 100vh;
+            overflow: hidden;
+        }
+        .app {
+            display: flex;
+            height: 100vh;
+            width: 100%;
+            overflow: hidden;
+        }
+        .sidebar {
+            width: 280px;
+            background: #ffffff;
+            border-right: 1px solid #e2e8f0;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            flex-shrink: 0;
+            box-shadow: 2px 0 12px rgba(0,0,0,0.02);
+            z-index: 2;
+        }
+        .sidebar-header {
+            padding: 20px 16px 12px;
+            border-bottom: 1px solid #eef2ff;
+            background: white;
+            position: sticky;
+            top: 0;
+        }
+        .sidebar-header h2 {
+            font-size: 1.35rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #2563eb, #3b82f6);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .sidebar-header h2:hover {
+            transform: scale(1.02);
+        }
+        .new-doc-btn {
+            margin-top: 16px;
+            width: 100%;
+            background: #2563eb;
+            border: none;
+            padding: 10px 12px;
+            border-radius: 12px;
+            color: white;
+            font-weight: 600;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .new-doc-btn:hover {
+            background: #1d4ed8;
+            transform: translateY(-1px);
+        }
+        .docs-list {
+            flex: 1;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .doc-item {
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 10px 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            transition: 0.2s;
+            border: 1px solid transparent;
+        }
+        .doc-item.active {
+            background: #eff6ff;
+            border-color: #bfdbfe;
+            box-shadow: 0 2px 6px rgba(37,99,235,0.08);
+        }
+        .doc-item:hover:not(.active) {
+            background: #f1f5f9;
+            border-color: #e2e8f0;
+        }
+        .doc-info {
+            flex: 1;
+            overflow: hidden;
+        }
+        .doc-name {
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: #0f172a;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .doc-date {
+            font-size: 0.65rem;
+            color: #64748b;
+            margin-top: 4px;
+        }
+        .doc-actions {
+            display: flex;
+            gap: 6px;
+            opacity: 0.6;
+        }
+        .doc-item:hover .doc-actions {
+            opacity: 1;
+        }
+        .doc-actions button {
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            color: #475569;
+            font-size: 0.75rem;
+            padding: 4px;
+            border-radius: 6px;
+        }
+        .doc-actions button:hover {
+            background: #e2e8f0;
+        }
+        .delete-btn:hover { color: #dc2626 !important; }
+        .main-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            background: #ffffff;
+            min-width: 0;
+        }
+        .toolbar {
+            background: #ffffff;
+            border-bottom: 1px solid #e9eef3;
+            padding: 12px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .doc-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .current-doc-name {
+            font-weight: 600;
+            font-size: 1rem;
+            background: #f1f5f9;
+            padding: 5px 14px;
+            border-radius: 40px;
+            color: #0f172a;
+            max-width: 280px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .save-status {
+            font-size: 0.75rem;
+            background: #eef2ff;
+            padding: 4px 12px;
+            border-radius: 30px;
+            color: #2563eb;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .editor-container {
+            flex: 1;
+            min-height: 0;
+            background: #1e1e2f;
+            position: relative;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        #editor {
+            width: 100%;
+            height: 100%;
+            font-size: 14px;
+        }
+        .chat-panel {
+            background: #ffffff;
+            border-top: 2px solid #e2e8f0;
+            display: flex;
+            flex-direction: column;
+            height: 280px;
+            flex-shrink: 0;
+        }
+        .chat-header {
+            padding: 8px 16px;
+            background: #f9fafb;
+            border-bottom: 1px solid #eef2ff;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: #1e293b;
+        }
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            background: #fefefe;
+        }
+        .message {
+            background: #f1f5f9;
+            padding: 8px 12px;
+            border-radius: 18px;
+            max-width: 85%;
+            width: fit-content;
+            word-wrap: break-word;
+            font-size: 0.85rem;
+        }
+        .message-user {
+            font-weight: 700;
+            color: #2563eb;
+            margin-right: 8px;
+            font-size: 0.8rem;
+        }
+        .message-text {
+            color: #0f172a;
+        }
+        .message-time {
+            font-size: 0.65rem;
+            color: #64748b;
+            margin-left: 10px;
+        }
+        .chat-input-area {
+            display: flex;
+            padding: 10px 12px;
+            background: white;
+            border-top: 1px solid #eef2ff;
+            gap: 10px;
+            align-items: center;
+        }
+        #chatInput {
+            flex: 1;
+            padding: 8px 14px;
+            border: 1px solid #cbd5e1;
+            border-radius: 40px;
+            font-size: 0.85rem;
+            outline: none;
+            transition: 0.2s;
+        }
+        #chatInput:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 2px #bfdbfe;
+        }
+        .send-chat-btn {
+            background: #3b82f6;
+            border: none;
+            color: white;
+            border-radius: 40px;
+            padding: 8px 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .send-chat-btn:hover {
+            background: #2563eb;
+        }
+        .chat-nick {
+            background: #f1f5f9;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 40px;
+            font-size: 0.75rem;
+            width: 100px;
+            text-align: center;
+            outline: none;
+        }
+        .easter-egg-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        .easter-egg-modal.active {
+            display: flex;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .easter-egg-content {
+            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: slideUp 0.4s ease-out;
+            max-width: 500px;
+            color: white;
+        }
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .easter-egg-content h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        .easter-egg-content p {
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+        }
+        .easter-egg-close-btn {
+            background: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 40px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.2s;
+            color: #f59e0b;
+        }
+        .easter-egg-close-btn:hover {
+            transform: scale(1.05);
+        }
+        @media (max-width: 700px) {
+            .sidebar { width: 240px; }
+            .chat-panel { height: 240px; }
+            .toolbar { padding: 8px 16px; }
+        }
+    </style>
+</head>
+<body>
+<div class="app">
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <h2 id="easterEggTrigger"><i class="fas fa-code"></i> CodeDocs</h2>
+            <button class="new-doc-btn" id="newDocBtn"><i class="fas fa-plus-circle"></i> New document</button>
+        </div>
+        <div class="docs-list" id="docsList"></div>
+        <div style="padding: 12px; font-size: 11px; color: #94a3b8; border-top: 1px solid #eef2ff; text-align: center;">
+            <i class="fas fa-save"></i> Auto-save · Code editor
+        </div>
+    </div>
+
+    <div class="main-area">
+        <div class="toolbar">
+            <div class="doc-title">
+                <i class="fas fa-file-alt" style="color:#3b82f6"></i>
+                <span class="current-doc-name" id="currentDocName">Loading...</span>
+            </div>
+            <div class="save-status" id="saveStatus">
+                <i class="fas fa-check-circle"></i> <span id="statusText">All changes saved</span>
+            </div>
+        </div>
+        <div class="editor-container">
+            <div id="editor"></div>
+        </div>
+        <div class="chat-panel">
+            <div class="chat-header">
+                <i class="fas fa-comments"></i> Team Chat · Global room
+                <div style="margin-left: auto; display: flex; gap: 6px;">
+                    <i class="fas fa-user"></i>
+                    <input type="text" id="nicknameInput" class="chat-nick" placeholder="Your name" maxlength="20" value="Guest">
+                </div>
+            </div>
+            <div class="chat-messages" id="chatMessages">
+                <div class="message" style="background:#eef2ff;"><i class="fas fa-info-circle"></i> Welcome! Chat history stays in your browser.</div>
+            </div>
+            <div class="chat-input-area">
+                <input type="text" id="chatInput" placeholder="Type a message..." autocomplete="off">
+                <button class="send-chat-btn" id="sendChatBtn"><i class="fas fa-paper-plane"></i> Send</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="easter-egg-modal" id="easterEggModal">
+    <div class="easter-egg-content">
+        <h1>🐐 ⭐</h1>
+        <p><strong>REYANSH IS THE GOAT</strong></p>
+        <p style="font-size: 0.9rem; margin-top: 15px;">You found the secret! 🎉</p>
+        <button class="easter-egg-close-btn" id="easterEggCloseBtn">Nice!</button>
+    </div>
+</div>
+
+<script>
+    (function(){
+        let easterEggClicks = 0;
+        const easterEggTrigger = document.getElementById('easterEggTrigger');
+        const easterEggModal = document.getElementById('easterEggModal');
+        const easterEggCloseBtn = document.getElementById('easterEggCloseBtn');
+        
+        function showEasterEgg() {
+            easterEggModal.classList.add('active');
+            setTimeout(() => {
+                easterEggModal.classList.remove('active');
+            }, 4000);
+        }
+        
+        easterEggTrigger.addEventListener('click', () => {
+            easterEggClicks++;
+            if (easterEggClicks === 7) {
+                showEasterEgg();
+                easterEggClicks = 0;
+            }
+        });
+        
+        easterEggCloseBtn.addEventListener('click', () => {
+            easterEggModal.classList.remove('active');
+            easterEggClicks = 0;
+        });
+        
+        easterEggModal.addEventListener('click', (e) => {
+            if (e.target === easterEggModal) {
+                easterEggModal.classList.remove('active');
+                easterEggClicks = 0;
+            }
+        });
+        
+        const STORAGE_DOCS = 'CodeDocs_NoPreview_Data';
+        const STORAGE_CHAT = 'CodeDocs_Chat_Messages';
+        let documents = {};
+        let currentDocId = null;
+        let editor = null;
+        let saveTimeout = null;
+        let isSwitching = false;
+        
+        const DEFAULT_CODE = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Code</title>
+    <style>
+        body { font-family: system-ui; background: #f9fafb; padding: 2rem; }
+        .container { max-width: 800px; margin: 0 auto; }
+        h1 { color: #1e293b; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>✨ Hello from CodeDocs</h1>
+        <p>Edit this code. Documents auto-save. Chat with your team!</p>
+        <button onclick="alert('Code editor works!')">Click me</button>
+    </div>
+</body>
+</html>`;
+        
+        function saveDocsToLocal() {
+            try {
+                localStorage.setItem(STORAGE_DOCS, JSON.stringify(documents));
+            } catch(e) { console.warn(e); }
+        }
+        
+        function loadDocsFromStorage() {
+            const stored = localStorage.getItem(STORAGE_DOCS);
+            if (stored) {
+                try {
+                    const parsed = JSON.parse(stored);
+                    if (parsed && typeof parsed === 'object') {
+                        documents = parsed;
+                        for (let id in documents) {
+                            const doc = documents[id];
+                            if (!doc.content) doc.content = DEFAULT_CODE;
+                            if (!doc.name) doc.name = "Untitled.html";
+                            if (!doc.lastModified) doc.lastModified = Date.now();
+                            if (!doc.id) doc.id = id;
+                        }
+                        return;
+                    }
+                } catch(e) {}
+            }
+            const now = Date.now();
+            documents = {
+                'doc_main': {
+                    id: 'doc_main',
+                    name: 'Welcome.html',
+                    content: DEFAULT_CODE,
+                    lastModified: now
+                }
+            };
+            saveDocsToLocal();
+        }
+        
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/[&<>]/g, function(m) {
+                if (m === '&') return '&amp;';
+                if (m === '<') return '&lt;';
+                if (m === '>') return '&gt;';
+                return m;
+            });
+        }
+        
+        function renderSidebar() {
+            const container = document.getElementById('docsList');
+            if (!container) return;
+            const docList = Object.values(documents);
+            if (docList.length === 0) {
+                container.innerHTML = `<div style="padding:20px; text-align:center; color:#94a3b8;"><i class="fas fa-folder-open"></i><br/>No docs<br><small>click "New document"</small></div>`;
+                return;
+            }
+            docList.sort((a,b) => (b.lastModified || 0) - (a.lastModified || 0));
+            let html = '';
+            for (let doc of docList) {
+                const isActive = (currentDocId === doc.id);
+                const date = new Date(doc.lastModified || Date.now());
+                const formatted = `${date.toLocaleDateString()} ${date.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}`;
+                html += `
+                    <div class="doc-item ${isActive ? 'active' : ''}" data-doc-id="${doc.id}">
+                        <div class="doc-info">
+                            <div class="doc-name" title="${escapeHtml(doc.name)}">${escapeHtml(doc.name)}</div>
+                            <div class="doc-date"><i class="far fa-clock"></i> ${formatted}</div>
+                        </div>
+                        <div class="doc-actions">
+                            <button class="rename-btn" data-id="${doc.id}" title="Rename"><i class="fas fa-pencil-alt"></i></button>
+                            <button class="delete-btn" data-id="${doc.id}" title="Delete"><i class="fas fa-trash-alt"></i></button>
+                        </div>
+                    </div>
+                `;
+            }
+            container.innerHTML = html;
+            
+            document.querySelectorAll('.doc-item').forEach(el => {
+                const docId = el.getAttribute('data-doc-id');
+                if (!docId) return;
+                el.addEventListener('click', (e) => {
+                    if (e.target.closest('.rename-btn') || e.target.closest('.delete-btn')) return;
+                    if (currentDocId !== docId) switchToDocument(docId);
+                });
+            });
+            document.querySelectorAll('.rename-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const id = btn.getAttribute('data-id');
+                    if (id && documents[id]) {
+                        let newName = prompt('Rename document:', documents[id].name);
+                        if (newName && newName.trim() !== '') {
+                            let clean = newName.trim().substring(0, 50);
+                            if (!clean.includes('.') && !clean.endsWith('.html')) clean += '.html';
+                            documents[id].name = clean;
+                            documents[id].lastModified = Date.now();
+                            saveDocsToLocal();
+                            renderSidebar();
+                            if (currentDocId === id) {
+                                document.getElementById('currentDocName').innerText = documents[id].name;
+                            }
+                            setStatusMsg('Renamed ✓', true);
+                        }
+                    }
+                });
+            });
+            document.querySelectorAll('.delete-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const id = btn.getAttribute('data-id');
+                    if (!id || !documents[id]) return;
+                    if (confirm(`Delete "${documents[id].name}" permanently?`)) {
+                        const wasCurrent = (currentDocId === id);
+                        delete documents[id];
+                        if (Object.keys(documents).length === 0) {
+                            const freshId = 'doc_' + Date.now();
+                            documents[freshId] = {
+                                id: freshId,
+                                name: 'NewDoc.html',
+                                content: DEFAULT_CODE,
+                                lastModified: Date.now()
+                            };
+                        }
+                        saveDocsToLocal();
+                        renderSidebar();
+                        if (wasCurrent) {
+                            const firstId = Object.keys(documents)[0];
+                            if (firstId) switchToDocument(firstId);
+                        }
+                        setStatusMsg('Document deleted', true);
+                    }
+                });
+            });
+        }
+        
+        function saveCurrentDocContent(updateStatus = true) {
+            if (!currentDocId || !editor || isSwitching) return;
+            const newCode = editor.getValue();
+            const doc = documents[currentDocId];
+            if (doc && doc.content !== newCode) {
+                doc.content = newCode;
+                doc.lastModified = Date.now();
+                saveDocsToLocal();
+                if (updateStatus) setStatusMsg('Saved', true);
+                renderSidebar();
+            }
+        }
+        
+        let statusTimer = null;
+        function setStatusMsg(msg, temporary = true) {
+            const statusSpan = document.getElementById('statusText');
+            if (!statusSpan) return;
+            if (statusTimer) clearTimeout(statusTimer);
+            statusSpan.innerText = msg;
+            if (temporary) {
+                statusTimer = setTimeout(() => {
+                    if (document.getElementById('statusText')) document.getElementById('statusText').innerText = 'All changes saved';
+                }, 1800);
+            }
+        }
+        
+        function updateEditorContent() {
+            if (!editor || !currentDocId) return;
+            const doc = documents[currentDocId];
+            if (doc) {
+                editor.setValue(doc.content, -1);
+                editor.clearSelection();
+            }
+        }
+        
+        function switchToDocument(docId) {
+            if (!documents[docId] || currentDocId === docId) return;
+            if (currentDocId && editor && !isSwitching) saveCurrentDocContent(false);
+            isSwitching = true;
+            currentDocId = docId;
+            updateEditorContent();
+            document.getElementById('currentDocName').innerText = documents[docId].name;
+            renderSidebar();
+            isSwitching = false;
+            setStatusMsg(`Opened: ${documents[docId].name}`, true);
+        }
+        
+        function createNewDocument() {
+            let base = 'Untitled';
+            let counter = 1;
+            let newName = `${base}.html`;
+            while (Object.values(documents).some(d => d.name === newName)) {
+                newName = `${base} ${counter++}.html`;
+            }
+            const newId = 'doc_' + Date.now() + '_' + Math.floor(Math.random() * 10000);
+            documents[newId] = {
+                id: newId,
+                name: newName,
+                content: DEFAULT_CODE,
+                lastModified: Date.now()
+            };
+            saveDocsToLocal();
+            renderSidebar();
+            switchToDocument(newId);
+            setStatusMsg('New document created', true);
+        }
+        
+        function initEditor() {
+            const editorDiv = document.getElementById('editor');
+            if (!editorDiv) return;
+            editor = ace.edit("editor");
+            editor.setTheme("ace/theme/chrome");
+            editor.session.setMode("ace/mode/html");
+            editor.setOptions({
+                fontSize: "13px",
+                wrap: true,
+                showPrintMargin: false,
+                highlightActiveLine: true,
+                tabSize: 4,
+                fontFamily: "'JetBrains Mono', 'Fira Code', monospace"
+            });
+            editor.session.on('change', () => {
+                if (isSwitching) return;
+                if (saveTimeout) clearTimeout(saveTimeout);
+                setStatusMsg('Editing...', false);
+                saveTimeout = setTimeout(() => {
+                    if (!isSwitching && currentDocId && editor) {
+                        saveCurrentDocContent(true);
+                    }
+                }, 600);
+            });
+            window.addEventListener('resize', () => editor?.resize());
+            setTimeout(() => editor?.resize(), 100);
+        }
+        
+        let chatMessages = [];
+        let currentNickname = "Guest";
+        
+        function loadChatFromStorage() {
+            const storedChat = localStorage.getItem(STORAGE_CHAT);
+            if (storedChat) {
+                try {
+                    chatMessages = JSON.parse(storedChat);
+                    if (!Array.isArray(chatMessages)) chatMessages = [];
+                } catch(e) { chatMessages = []; }
+            }
+            if (!chatMessages.length) {
+                chatMessages.push({
+                    id: Date.now(),
+                    nickname: "System",
+                    text: "Welcome! Chat is persistent. Change your name above.",
+                    timestamp: Date.now()
+                });
+                saveChatToStorage();
+            }
+            renderChatMessages();
+        }
+        
+        function saveChatToStorage() {
+            localStorage.setItem(STORAGE_CHAT, JSON.stringify(chatMessages));
+        }
+        
+        function renderChatMessages() {
+            const container = document.getElementById('chatMessages');
+            if (!container) return;
+            if (chatMessages.length === 0) {
+                container.innerHTML = '<div class="message">No messages yet. Start chatting!</div>';
+                return;
+            }
+            let html = '';
+            for (let msg of chatMessages) {
+                const time = new Date(msg.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+                const displayName = escapeHtml(msg.nickname) || 'Anonymous';
+                const text = escapeHtml(msg.text);
+                html += `
+                    <div class="message">
+                        <span class="message-user">${displayName}</span>
+                        <span class="message-text">${text}</span>
+                        <span class="message-time">${time}</span>
+                    </div>
+                `;
+            }
+            container.innerHTML = html;
+            container.scrollTop = container.scrollHeight;
+        }
+        
+        function addChatMessage(nickname, text) {
+            if (!text.trim()) return;
+            const newMsg = {
+                id: Date.now() + Math.random(),
+                nickname: nickname.trim().substring(0, 20) || "Guest",
+                text: text.trim().substring(0, 300),
+                timestamp: Date.now()
+            };
+            chatMessages.push(newMsg);
+            if (chatMessages.length > 200) chatMessages = chatMessages.slice(-200);
+            saveChatToStorage();
+            renderChatMessages();
+        }
+        
+        function sendChatMessage() {
+            const input = document.getElementById('chatInput');
+            const nickInput = document.getElementById('nicknameInput');
+            let nickname = nickInput.value.trim();
+            if (nickname === "") nickname = "Guest";
+            currentNickname = nickname;
+            const msg = input.value.trim();
+            if (msg === "") return;
+            addChatMessage(nickname, msg);
+            input.value = "";
+            input.focus();
+        }
+        
+        function updateNickname() {
+            const nickInput = document.getElementById('nicknameInput');
+            let newNick = nickInput.value.trim();
+            if (newNick === "") newNick = "Guest";
+            currentNickname = newNick;
+            localStorage.setItem('CodeDocs_Nickname', newNick);
+        }
+        
+        function loadNicknamePref() {
+            const saved = localStorage.getItem('CodeDocs_Nickname');
+            if (saved) {
+                document.getElementById('nicknameInput').value = saved;
+                currentNickname = saved;
+            } else {
+                document.getElementById('nicknameInput').value = "Guest";
+            }
+        }
+        
+        function bootstrap() {
+            loadDocsFromStorage();
+            initEditor();
+            const firstId = Object.keys(documents)[0];
+            if (firstId) {
+                currentDocId = firstId;
+                const doc = documents[currentDocId];
+                if (editor) {
+                    editor.setValue(doc.content, -1);
+                    editor.clearSelection();
+                }
+                document.getElementById('currentDocName').innerText = doc.name;
+            } else {
+                createNewDocument();
+            }
+            renderSidebar();
+            
+            loadChatFromStorage();
+            loadNicknamePref();
+            const sendBtn = document.getElementById('sendChatBtn');
+            const chatInput = document.getElementById('chatInput');
+            const nickField = document.getElementById('nicknameInput');
+            sendBtn.addEventListener('click', sendChatMessage);
+            chatInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendChatMessage(); });
+            nickField.addEventListener('change', updateNickname);
+            
+            document.getElementById('newDocBtn').addEventListener('click', () => createNewDocument());
+            
+            window.addEventListener('beforeunload', () => {
+                if (editor && currentDocId && !isSwitching) {
+                    const freshCode = editor.getValue();
+                    if (documents[currentDocId] && documents[currentDocId].content !== freshCode) {
+                        documents[currentDocId].content = freshCode;
+                        documents[currentDocId].lastModified = Date.now();
+                        saveDocsToLocal();
+                    }
+                }
+                saveChatToStorage();
+            });
+            
+            document.addEventListener('keydown', (e) => {
+                if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+                    e.preventDefault();
+                    if (editor && currentDocId) {
+                        saveCurrentDocContent(true);
+                        setStatusMsg('Manual save ✓', true);
+                    }
+                }
+            });
+        }
+        
+        document.addEventListener('DOMContentLoaded', bootstrap);
+    })();
+</script>
+</body>
+</html>
